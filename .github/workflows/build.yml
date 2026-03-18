@@ -121,7 +121,7 @@ jobs:
           sarif_file: ${{ env.DESTDIR }}/govulncheck.out
 
   artifacts:
-    uses: docker/github-builder/.github/workflows/bake.yml@v1
+    uses: docker/github-builder/.github/workflows/bake.yml@git-query-fetch-depth
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
@@ -236,7 +236,7 @@ jobs:
       - run: echo "Exposing env vars for reusable workflow"
 
   image:
-    uses: docker/github-builder/.github/workflows/bake.yml@v1
+    uses: docker/github-builder/.github/workflows/bake.yml@git-query-fetch-depth
     permissions:
       contents: read # same as global permission
       id-token: write # for signing attestation(s) with GitHub OIDC Token
