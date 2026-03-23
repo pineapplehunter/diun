@@ -1,58 +1,55 @@
 package registry
 
 import (
-	"os"
 	"testing"
 
-	dockerregistry "github.com/docker/docker/api/types/registry"
+	regconfig "github.com/regclient/regclient/config"
+	regplatform "github.com/regclient/regclient/types/platform"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-var (
-	rc *Client
-)
-
-func TestMain(m *testing.M) {
-	var err error
-
-	rc, err = New(Options{
-		ImageOs:   "linux",
-		ImageArch: "amd64",
-	})
-	if err != nil {
-		panic(err.Error())
-	}
-
-	os.Exit(m.Run())
-}
-
 func TestNew(t *testing.T) {
-	assert.NotNil(t, rc)
+	client := New(Options{
+		Host: regconfig.HostNewName("docker.io"),
+		Platform: regplatform.Platform{
+			OS:           "linux",
+			Architecture: "amd64",
+		},
+	})
+	assert.NotNil(t, client)
 }
 
-func TestNewMapsDockerRegistryAuth(t *testing.T) {
-	t.Parallel()
-
-	rc, err := New(Options{
-		Auth: dockerregistry.AuthConfig{
-			Username:      "janedoe",
-			Password:      "s3cr3t",
-			IdentityToken: "token",
+func TestNewMapsRegistryAuth(t *testing.T) {
+	client := New(Options{
+		Host: &regconfig.Host{
+			Name:  "docker.io",
+			User:  "janedoe",
+			Pass:  "s3cr3t",
+			Token: "token",
+			TLS:   regconfig.TLSInsecure,
 		},
-		InsecureTLS: true,
-		UserAgent:   "diun/test",
-		ImageOs:     "linux",
-		ImageArch:   "amd64",
+		UserAgent: "diun/test",
+		Platform: regplatform.Platform{
+			OS:           "linux",
+			Architecture: "amd64",
+		},
 	})
-	require.NoError(t, err)
-	require.NotNil(t, rc.sysCtx)
-	require.NotNil(t, rc.sysCtx.DockerAuthConfig)
+	require.NotNil(t, client.opts.Host)
+	require.Equal(t, "janedoe", client.opts.Host.User)
+	require.Equal(t, "s3cr3t", client.opts.Host.Pass)
+	require.Equal(t, "token", client.opts.Host.Token)
+	require.Equal(t, "diun/test", client.opts.UserAgent)
+	require.Equal(t, regplatform.Platform{
+		OS:           "linux",
+		Architecture: "amd64",
+	}, client.opts.Platform)
+}
 
-	assert.Equal(t, "janedoe", rc.sysCtx.DockerAuthConfig.Username)
-	assert.Equal(t, "s3cr3t", rc.sysCtx.DockerAuthConfig.Password)
-	assert.Equal(t, "token", rc.sysCtx.DockerAuthConfig.IdentityToken)
-	assert.Equal(t, "diun/test", rc.sysCtx.DockerRegistryUserAgent)
-	assert.Equal(t, "linux", rc.sysCtx.OSChoice)
-	assert.Equal(t, "amd64", rc.sysCtx.ArchitectureChoice)
+func TestNewUsesLocalPlatformByDefault(t *testing.T) {
+	client := New(Options{
+		Platform: regplatform.Local(),
+	})
+	require.Nil(t, client.opts.Host)
+	require.Equal(t, regplatform.Local(), client.opts.Platform)
 }
